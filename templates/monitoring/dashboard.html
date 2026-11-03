@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Dashboard | AirAware{% endblock %}
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-end gap-3 mb-4">
+ <div><div class="eyebrow mb-2">Environmental intelligence</div><h1 class="display-5 fw-bold mb-2">Know the air around you.</h1><p class="muted mb-0">A map-first view of monitored air-quality locations and community observations.</p></div>
+ <a class="btn btn-primary px-4 py-3" href="/report/">＋ Report pollution</a>
+</div>
+<div class="alert alert-warning border-0 rounded-4"><strong>Prototype data notice:</strong> displayed readings are illustrative demo values, not current official measurements. Replace them with validated data before public use.</div>
+<div class="row g-3 mb-4">
+ <div class="col-6 col-lg-3"><div class="stat"><div class="muted small">Active demo stations</div><div class="stat-value">{{ stations_count }}</div><div class="small muted">Illustrative locations</div></div></div>
+ <div class="col-6 col-lg-3"><div class="stat"><div class="muted small">High-level readings</div><div class="stat-value">{{ high_count }}</div><div class="small muted">AQI above 200 in demo data</div></div></div>
+ <div class="col-6 col-lg-3"><div class="stat"><div class="muted small">Reports awaiting review</div><div class="stat-value">{{ reports_count }}</div><div class="small muted">Community submissions</div></div></div>
+ <div class="col-6 col-lg-3"><div class="stat"><div class="muted small">Dashboard refreshed</div><div class="stat-value fs-4">{{ updated|date:"H:i" }}</div><div class="small muted">{{ updated|date:"d M Y" }}</div></div></div>
+</div>
+<div class="row g-4">
+ <div class="col-lg-8"><section class="panel h-100"><div class="d-flex justify-content-between align-items-start mb-3"><div><div class="eyebrow">Spatial view</div><h2 class="h4 fw-bold mb-1">Pollution monitoring map</h2><p class="muted small mb-0">Select a marker to see the sample reading.</p></div><span class="pill medium">Demo</span></div><div id="airmap"></div><div class="small muted mt-3">Map markers are illustrative and do not represent certified monitoring station coordinates.</div></section></div>
+ <div class="col-lg-4"><section class="panel h-100"><div class="eyebrow">Snapshot</div><h2 class="h4 fw-bold mb-3">Latest AQI by location</h2><canvas id="aqiChart" height="250"></canvas><p class="small muted mt-3 mb-0">Simplified categories for display only. Official AQI methods vary by jurisdiction and pollutant.</p></section></div>
+</div>
+<section class="panel mt-4"><div class="d-flex justify-content-between align-items-center mb-3"><div><div class="eyebrow">Monitoring network</div><h2 class="h4 fw-bold mb-0">Latest readings</h2></div><a href="/readings.csv" class="btn btn-outline-secondary btn-sm">Export CSV ↓</a></div>
+<div class="table-responsive"><table class="table mb-0"><thead><tr><th>Location</th><th>AQI</th><th>Category</th><th>PM2.5</th><th>PM10</th><th>Recorded</th></tr></thead><tbody>
+{% for item in latest %}<tr><td><div class="fw-semibold">{{ item.station.name }}</div><div class="muted small">{{ item.station.location_name }}</div></td><td class="fw-bold">{{ item.reading.aqi }}</td><td><span class="pill {{ item.level }}">{{ item.category }}</span></td><td>{{ item.reading.pm25|default_if_none:"—" }}</td><td>{{ item.reading.pm10|default_if_none:"—" }}</td><td class="text-nowrap">{{ item.reading.recorded_at|date:"d M, H:i" }}</td></tr>
+{% empty %}<tr><td colspan="6" class="text-center muted py-4">No readings yet. Run <code>load_demo_data</code> to populate sample records.</td></tr>{% endfor %}
+</tbody></table></div></section>
+<section class="panel mt-4"><div class="d-flex justify-content-between align-items-center mb-3"><div><div class="eyebrow">Community intelligence</div><h2 class="h4 fw-bold mb-0">Recent pollution reports</h2></div><a href="/report/" class="btn btn-outline-secondary btn-sm">Add report</a></div>
+{% for report in recent_reports %}<div class="py-3 border-bottom"><div class="d-flex flex-wrap justify-content-between gap-2"><strong>{{ report.title }}</strong><span class="small muted">{{ report.created_at|date:"d M Y, H:i" }}</span></div><div class="muted small">{{ report.get_report_type_display }} · {{ report.location_name }} · {% if report.reviewed %}Reviewed{% else %}Awaiting review{% endif %}</div><div class="mt-1">{{ report.description|truncatechars:180 }}</div></div>{% empty %}<p class="muted mb-0">No community reports submitted yet.</p>{% endfor %}
+</section>
+{% endblock %}
+{% block scripts %}
+<script>
+const points = {{ map_points_json|safe }};
+const map = L.map('airmap').setView([11.0168,76.9558],12);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap contributors'}).addTo(map);
+points.forEach(p=>{
+ const color = p.aqi>200?'#dc2626':(p.aqi>100?'#d97706':'#16a34a');
+ const marker=L.circleMarker([p.lat,p.lon],{radius:10,color,fillColor:color,fillOpacity:.72,weight:2}).addTo(map);
+ marker.bindPopup(`<strong>${p.name}</strong><br>${p.location}<br>AQI: ${p.aqi}<br>${p.category}<br><small>Illustrative demo value</small>`);
+});
+if(points.length>1){map.fitBounds(points.map(p=>[p.lat,p.lon]),{padding:[25,25]});}
+new Chart(document.getElementById('aqiChart'),{type:'bar',data:{labels:{{ chart_labels_json|safe }},datasets:[{label:'AQI (demo)',data:{{ chart_aqi_json|safe }},borderWidth:0,borderRadius:6}]},options:{indexAxis:'y',responsive:true,plugins:{legend:{display:false}},scales:{x:{beginAtZero:true}}}});
+</script>
+{% endblock %}

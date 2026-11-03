@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}Report pollution | AirAware{% endblock %}
+{% block content %}
+<div class="row justify-content-center"><div class="col-lg-8"><div class="eyebrow mb-2">Community reporting</div><h1 class="display-6 fw-bold">Report a pollution observation</h1><p class="muted">Share what you observed, where it happened, and optional coordinates. Reports are observations, not verified evidence until reviewed.</p>
+<div class="panel"><form method="post">{% csrf_token %}
+{% for field in form %}<div class="mb-3"><label class="form-label fw-semibold" for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}{% for error in field.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}</div>{% endfor %}
+<button class="btn btn-primary px-4" type="submit">Submit report</button> <a class="btn btn-light" href="/">Cancel</a>
+</form></div></div></div>
+{% endblock %}
