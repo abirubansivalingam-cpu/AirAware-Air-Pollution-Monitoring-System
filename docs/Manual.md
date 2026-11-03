@@ -21,3 +21,5 @@ Using Windows Command Prompt (CMD)
 
     :: 7. Start the local server
     .venv\Scripts\python.exe manage.py runserver 8080
+    or
+    .venv\Scripts\python.exe manage.py runserver 0.0.0.0:8080
